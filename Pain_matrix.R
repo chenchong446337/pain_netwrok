@@ -199,7 +199,7 @@ c_select_contral <- function(data){
     select(structure.acronym, normalized_projection_volume, projection_volume) 
 }
 for (i in seq_along(vertex_sym)) {
-  progress(i, progress.bar = TRUE)
+  svMisc::progress(i, progress.bar = TRUE)
   Sys.sleep (0.01)
   if (i ==length(vertex_sym)) cat("Done!\n")
   sym_check <- vertex_sym
@@ -275,7 +275,7 @@ ratio_strong_connection/(ratio_strong_connection + ratio_strong_connection_contr
 # # 
 # write.csv(dat_vertex_coord, "dat_vertex_coord.csv", row.names=FALSE)
 
-dat_vertex_coord <- read.csv("~cchen2/Documents/neuroscience/Pn\ project/R_script/pain_network/dat_vertex_coord.csv")
+dat_vertex_coord <- read.csv("~cchen/Documents/neuroscience/Pn\ project/R_script/pain_network/dat_vertex_coord.csv")
 
 vertex_dist <- rep(0, nrow(dat_project_value_filter))
 for (i in c(1:nrow(dat_project_value_filter))){
@@ -444,18 +444,25 @@ vertex_color[which(V(pain_net)$Group=="BS")] ="aquamarine4"
 vertex_color[which(V(pain_net)$Group=="CB")] ="steelblue4"
 V(pain_net)$color <- vertex_color
 
+deg <- igraph::degree(pain_net, mode="all")
+
 lay_fr <- layout.norm(as.matrix(dat_vertex_coord[,2:3]))
 
+# par(mar=c(0,0,0,0)+0.2)
+# plot(pain_net, layout=lay_fr,vertex.col=V(pain_net)$color, vertex.size=3, vertex.label.color="black", vertex.label.dist=-1,
+#       edge.width = log10(E(pain_net)$weight)*5, edge.color = adjustcolor(E(pain_net)$color,0.8), edge.arrow.size= 0.2, edge.curved = T)
+# legend("bottomleft", legend = c("CH", "BS","CB"), col=c("brown3", "aquamarine4", "steelblue4"), pch=19, pt.cex=1.5, bty="n")
+# 
+# par(mar=c(5,4,4,2)+0.1)
+
 par(mar=c(0,0,0,0)+0.2)
-plot(pain_net, layout=lay_fr,vertex.col=V(pain_net)$color, vertex.size=5, edge.width = log10(E(pain_net)$weight)*5, edge.color = adjustcolor(E(pain_net)$color,0.8), edge.arrow.size= 0.2, edge.curved = T )
+plot(pain_net, layout=lay_fr,vertex.col=V(pain_net)$color, vertex.size=deg/6, vertex.label.color="black",vertex.label.dist=0.5,
+     edge.width = 1, edge.color = adjustcolor(E(pain_net)$color,0.8), edge.arrow.size= 0.2, edge.curved = T, asp = 0.8)
 legend("bottomleft", legend = c("CH", "BS","CB"), col=c("brown3", "aquamarine4", "steelblue4"), pch=19, pt.cex=1.5, bty="n")
 
 par(mar=c(5,4,4,2)+0.1)
 
-
-# save the figure
-
-setwd("~cchen2/Documents/neuroscience/Pn\ project/Figure/pain_network/")
+setwd("~cchen/Documents/neuroscience/Pn\ project/Figure/pain_network/")
 cairo_pdf("p_network.pdf", width = 120/25.6, height = 90/25.6, family = "Arial")
 
 dev.off()
@@ -520,7 +527,7 @@ plot(pain_net_sfg, vertex.col=V(pain_net)$color, vertex.size=5, edge.width = 0.2
 
 par(mar=c(5,4,4,2)+0.1)
 
-cluster_walktrap(pain_net_sfg)
+cluster_walktrap(pain_net)
 mean_distance(pain_net_sfg, directed = T, unconnected = F)
 hist(igraph::degree(pain_net_sfg))
 
