@@ -34,7 +34,7 @@ rm(vertex_sym_CH, vertex_sym_BS, vertex_sym_CB)
 
 ## download related data to local drive----
 for (i in seq_along(vertex_sym)){
-  progress(i, progress.bar = TRUE)
+  svMisc::progress(i, progress.bar = TRUE)
   Sys.sleep (0.01)
   if (i ==length(vertex_sym)) cat("Done!\n")
   
@@ -74,7 +74,7 @@ for (i in seq_along(vertex_sym)){
 dat_project_value <- NULL
 vertex_coordinate <- vector(mode = "list", length = length(vertex_sym))
 for (i in seq_along(vertex_sym)) {
-  progress(i, progress.bar = TRUE)
+  svMisc::progress(i, progress.bar = TRUE)
   Sys.sleep (0.01)
   if (i ==length(vertex_sym)) cat("Done!\n")
   
@@ -104,19 +104,19 @@ for (i in seq_along(vertex_sym)) {
       filter(id==ID_exp[1]) %>% 
       .$`injection-coordinates` %>% 
       unlist()
-   # for (j in seq_along(ID_exp)) {
-   #   dat_sta <- str_c("http://api.brain-map.org/api/v2/data/ProjectionStructureUnionize/query.json?criteria=[section_data_set_id$eq", ID_exp[j], "],[is_injection$eqfalse]&num_rows=5000&include=structure") %>% 
-   #     GET()
-   #   value_projection <- fromJSON(rawToChar(dat_sta$content), flatten = T) %>% 
-   #     .$msg %>% 
-   #     as_tibble() %>% 
-   #     filter(structure.acronym %in% sym_check & hemisphere_id == "2") %>% 
-   #     select(structure.acronym, normalized_projection_volume, projection_volume) %>% 
-   #     add_column(structure.acronym.IN = vertex_sym[i],.before = "structure.acronym" ) %>% 
-   #     add_column(Group = vertex_str[i])
-   #   
-   #   dat_project_value <- rbind(dat_project_value, value_projection)
-   # }
+   for (j in seq_along(ID_exp)) {
+     dat_sta <- str_c("http://api.brain-map.org/api/v2/data/ProjectionStructureUnionize/query.json?criteria=[section_data_set_id$eq", ID_exp[j], "],[is_injection$eqfalse]&num_rows=5000&include=structure") %>%
+       GET()
+     value_projection <- fromJSON(rawToChar(dat_sta$content), flatten = T) %>%
+       .$msg %>%
+       as_tibble() %>%
+       filter(structure.acronym %in% sym_check & hemisphere_id == "2") %>%
+       select(structure.acronym, normalized_projection_volume, projection_volume) %>%
+       add_column(structure.acronym.IN = vertex_sym[i],.before = "structure.acronym" ) %>%
+       add_column(Group = vertex_str[i])
+
+     dat_project_value <- rbind(dat_project_value, value_projection)
+   }
   }
 }
 
@@ -126,13 +126,14 @@ for (i in seq_along(vertex_sym)) {
 
 
 ### start from here with saved data--------
-
+setwd("~cchen/Documents/neuroscience/Pn\ project/R_script/pain_network/data")
 dat_project_value <- NULL
 c_select <- function(data){
   data %>% 
     filter(structure.acronym %in% sym_check & hemisphere_id == "2") %>% 
     select(structure.acronym, normalized_projection_volume, projection_volume) 
 }
+
 for (i in seq_along(vertex_sym)) {
   progress(i, progress.bar = TRUE)
   Sys.sleep (0.01)
@@ -275,7 +276,7 @@ ratio_strong_connection/(ratio_strong_connection + ratio_strong_connection_contr
 # # 
 # write.csv(dat_vertex_coord, "dat_vertex_coord.csv", row.names=FALSE)
 
-dat_vertex_coord <- read.csv("~cchen/Documents/neuroscience/Pn\ project/R_script/pain_network/dat_vertex_coord.csv")
+dat_vertex_coord <- read.csv("~cchen/Documents/neuroscience/Pn\ project/R_script/pain_network/data/dat_vertex_coord.csv")
 
 vertex_dist <- rep(0, nrow(dat_project_value_filter))
 for (i in c(1:nrow(dat_project_value_filter))){
@@ -448,22 +449,23 @@ deg <- igraph::degree(pain_net, mode="all")
 
 lay_fr <- layout.norm(as.matrix(dat_vertex_coord[,2:3]))
 
-# par(mar=c(0,0,0,0)+0.2)
-# plot(pain_net, layout=lay_fr,vertex.col=V(pain_net)$color, vertex.size=3, vertex.label.color="black", vertex.label.dist=-1,
-#       edge.width = log10(E(pain_net)$weight)*5, edge.color = adjustcolor(E(pain_net)$color,0.8), edge.arrow.size= 0.2, edge.curved = T)
-# legend("bottomleft", legend = c("CH", "BS","CB"), col=c("brown3", "aquamarine4", "steelblue4"), pch=19, pt.cex=1.5, bty="n")
-# 
-# par(mar=c(5,4,4,2)+0.1)
-
 par(mar=c(0,0,0,0)+0.2)
-plot(pain_net, layout=lay_fr,vertex.col=V(pain_net)$color, vertex.size=deg/6, vertex.label.color="black",vertex.label.dist=0.5,
-     edge.width = 1, edge.color = adjustcolor(E(pain_net)$color,0.8), edge.arrow.size= 0.2, edge.curved = T, asp = 0.8)
+plot(pain_net, layout=lay_fr,vertex.col=V(pain_net)$color, vertex.size=deg/4, vertex.label.color="black", vertex.label.dist=-1,
+      edge.width = log10(E(pain_net)$weight)*5, edge.color = adjustcolor(E(pain_net)$color,0.8), edge.arrow.size= 0.2, edge.curved = T)
 legend("bottomleft", legend = c("CH", "BS","CB"), col=c("brown3", "aquamarine4", "steelblue4"), pch=19, pt.cex=1.5, bty="n")
 
 par(mar=c(5,4,4,2)+0.1)
 
+cw <- cluster_walktrap(pain_net)
+colors <- terrain.colors(max(membership(cw)))
+par(mar=c(0,0,0,0)+0.2)
+plot(pain_net, vertex.color=colors[membership(cw)], layout=lay_fr,vertex.size=deg/4, vertex.label.color="black",
+     edge.width = 1, edge.color = "gray", edge.arrow.size= 0.2, edge.curved = T, asp = 0.8)
+legend("bottomleft", legend = c(1: length(colors)), col= colors[unique(membership(cw))], pch=19, pt.cex=1.5, bty="n")
+
+par(mar=c(5,4,4,2)+0.1)
 setwd("~cchen/Documents/neuroscience/Pn\ project/Figure/pain_network/")
-cairo_pdf("p_network.pdf", width = 120/25.6, height = 90/25.6, family = "Arial")
+cairo_pdf("p_network.pdf", width = 130/25.6, height = 90/25.6, family = "Arial")
 
 dev.off()
 
@@ -475,12 +477,14 @@ closness_pain_net <- igraph::closeness(pain_net, mode = "all")
 betwness_pain_net <- igraph::betweenness(pain_net, directed = T)
 
 dat_pain_centra <- tibble(Vertex = names(degree_pain_net) ,Degree = degree_pain_net, Closness = closness_pain_net, Betweeness= betwness_pain_net)
+
+write_csv(dat_pain_centra, "centrality.csv")
 ## create models and compare with the pain net 
 
 pain_net_rnd <- igraph::erdos.renyi.game(length(V(pain_net)), graph.density(pain_net), type = "gnp",directed = T )
 
 # pain_net_smw <- mean(igraph::degree(pain_net, mode = "out")) %>% 
-  igraph::sample_smallworld(1, length(V(pain_net)), nei =., p=0.3)
+#   igraph::sample_smallworld(1, length(V(pain_net)), nei =., p=0.3)
 
 ## Generate small world random network
 n <- gorder(pain_net)
@@ -600,7 +604,7 @@ p_dat_r <- cbind(dat_r[[1]]$p, dat_r[[1]]$c, dat_r[[2]]$c,dat_r[[3]]$c,dat_r[[4]
   theme_classic()+
   theme(legend.position = 'none')
 
-setwd("~cchen2/Documents/neuroscience/Pn\ project/Figure/pain_network/")
+setwd("~cchen/Documents/neuroscience/Pn\ project/Figure/pain_network/")
 cairo_pdf("p_dat_r.pdf", width = 75/25.6, height = 75/25.6, family = "Arial")
 p_dat_r
 dev.off()
@@ -718,7 +722,10 @@ dendPlot(ceb, mode="hclust")
 clp <- cluster_label_prop(pain_net) 
 plot(clp, pain_net, )
 
+x_cluster <- cluster_infomap(pain_net, nb.trials = 2)
 cw_pain <- cluster_walktrap(pain_net)
+dendPlot(cw_pain, mode="dendrogram")
+
 modularity(cw_pain)
 vertex_memb <- membership(cw_pain) %>% 
   as.vector() 
@@ -759,7 +766,14 @@ assortativity_degree(pain_net_rnd, directed = TRUE)
 assortativity_degree(pain_net_sfg, directed = TRUE)
 assortativity_degree(pain_net_smw, directed = TRUE)
 
+assortativity(pain_net_smw, types1 = as.numeric(as.factor(V(pain_net)$Group)), types2 = NULL, directed = TRUE)
+
+
+
 assortativity_nominal(pain_net,as.numeric(as.factor(V(pain_net)$Group)),directed = TRUE)
+assortativity_nominal(pain_net_rnd,as.numeric(as.factor(V(pain_net)$Group)),directed = TRUE)
+assortativity_nominal(pain_net_sfg,as.numeric(as.factor(V(pain_net)$Group)),directed = TRUE)
+assortativity_nominal(pain_net_smw,as.numeric(as.factor(V(pain_net)$Group)),directed = TRUE)
 
 ## remove some vertices
 pain_net_rm <- delete_vertices(pain_net, c("CENT", "CUL","PYR", "NOD", "SIM", "AN", "PRM", "PFL"))
@@ -784,7 +798,7 @@ for (i in c(1: length(n_rm))){
   for (j in c(1:100)){
     vertex_rm <- sample(as_ids(V(pain_net)), n_rm[i])
     p_net <- delete_vertices(pain_net, vertex_rm) 
-    dis_mean <- mean_distance(p_net, directed = T, unconnected = F)
+    dis_mean <- mean_distance(p_net, weights = NA,directed = T, unconnected = T)
     dis_mean_total1[(i-1)*100 + j] <- dis_mean
     
     ## copare the cluster size change
